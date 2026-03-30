@@ -2,25 +2,26 @@
 salsa20-ref.c version 20051118
 D. J. Bernstein
 Public domain.
-
-Modified by:
-
-CS4801/ECE4802
-Team E1
-Jacob Boyle
-Aditya Krishna
-Olivia Olsen
-Alan Wang
-
 */
 
 #include "ecrypt-sync.h"
+#include <string.h>
 #include <pthread.h>
 
 #define ROTATE(v,c) (ROTL32(v,c))
 #define XOR(v,w) ((v) ^ (w))
 #define PLUS(v,w) (U32V((v) + (w)))
 #define PLUSONE(v) (PLUS((v),1))
+
+#define THREADS 16
+
+typedef struct {
+  ECRYPT_ctx xs;
+  u8 *ms;
+  u8 *cs;
+  u32 bytess;
+} thread_args_t;
+
 
 static void salsa20_wordtobyte(u8 output[64],const u32 input[16])
 {
@@ -106,21 +107,17 @@ void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
   x->input[9] = 0;
 }
 
-static void* ECRYPT_encrypt_bytes_worker(void* ctx)
+static void* encrypt_worker(void * ctx)
 {
-
-}
-
-#define THREADS 32
-
-void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
-{
-  u32 block_size = bytes / THREADS;
+  ECRYPT_ctx *x = &(((thread_args_t*)ctx)->xs);
+  u8 *m = ((thread_args_t*)ctx)->ms;
+  u8 *c = ((thread_args_t*)ctx)->cs;
+  u32 bytes = ((thread_args_t*)ctx)->bytess;
 
   u8 output[64];
   int i;
 
-  if (!bytes) return;
+  if (!bytes) return NULL;
   for (;;) {
     salsa20_wordtobyte(output,x->input);
     x->input[8] = PLUSONE(x->input[8]);
@@ -130,7 +127,7 @@ void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
     }
     if (bytes <= 64) {
       for (i = 0;i < bytes;++i) c[i] = m[i] ^ output[i];
-      return;
+      return NULL;
     }
     for (i = 0;i < 64;++i) c[i] = m[i] ^ output[i];
     bytes -= 64;
@@ -139,7 +136,39 @@ void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
   }
 }
 
-void ECRYPT_decrypt_bytes(ECRYPT_ctx *x,const u8 *c,u8 *m,u32 bytes)
+void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,u8 *m,u8 *c,u32 bytes)
+{
+
+  pthread_t threads[THREADS];
+  thread_args_t thread_args[THREADS];
+
+  u32 cnt = 0;
+  const u32 block_size = bytes / THREADS;
+  const u32 first_block_add = bytes % THREADS;
+
+  for (u32 i = 0; i < THREADS; i++) {
+    memcpy(&thread_args[i].xs, x, sizeof(ECRYPT_ctx));
+    thread_args[i].ms = &m[cnt];
+    thread_args[i].cs = &c[cnt];
+    if (i == 0) {
+      cnt += block_size + first_block_add;
+      thread_args[i].bytess = block_size + first_block_add;
+    }
+    else {
+      cnt += block_size;
+      thread_args[i].bytess = block_size;
+    }
+    if (pthread_create(&threads[i], NULL, encrypt_worker, &thread_args[i]) < 0) {
+
+    }
+  }
+
+  for (u32 i = 0; i < THREADS; i++) {
+    pthread_join(threads[i], NULL);
+  }
+}
+
+void ECRYPT_decrypt_bytes(ECRYPT_ctx *x,u8 *c,u8 *m,u32 bytes)
 {
   ECRYPT_encrypt_bytes(x,c,m,bytes);
 }

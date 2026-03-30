@@ -134,13 +134,13 @@ void ECRYPT_ivsetup(
 
 void ECRYPT_encrypt_bytes(
   ECRYPT_ctx* ctx, 
-  const u8* plaintext, 
+  u8* plaintext, 
   u8* ciphertext, 
   u32 msglen);                /* Message length in bytes. */ 
 
 void ECRYPT_decrypt_bytes(
   ECRYPT_ctx* ctx, 
-  const u8* ciphertext, 
+  u8* ciphertext, 
   u8* plaintext, 
   u32 msglen);                /* Message length in bytes. */ 
 

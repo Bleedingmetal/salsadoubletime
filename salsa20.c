@@ -95,7 +95,7 @@ void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
   x->input[9] = 0;
 }
 
-void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
+void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,u8 *m,u8 *c,u32 bytes)
 {
   u8 output[64];
   int i;
@@ -119,7 +119,7 @@ void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
   }
 }
 
-void ECRYPT_decrypt_bytes(ECRYPT_ctx *x,const u8 *c,u8 *m,u32 bytes)
+void ECRYPT_decrypt_bytes(ECRYPT_ctx *x,u8 *c,u8 *m,u32 bytes)
 {
   ECRYPT_encrypt_bytes(x,c,m,bytes);
 }

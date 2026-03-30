@@ -55,14 +55,15 @@ int main() {
         }
         uint8_t* plaintext = (uint8_t*) words;
 
-        ECRYPT_keysetup(&ctx, key, KEYBYTES, IVBYTES);
-
         struct timeval starttime;
         gettimeofday(&starttime, NULL);
 
+
+        ECRYPT_keysetup(&ctx, key, KEYBYTES, IVBYTES);
         ECRYPT_ivsetup(&ctx, iv);
         ECRYPT_encrypt_bytes(&ctx, plaintext, cyphertext, BYTES);
         
+        ECRYPT_keysetup(&ctx, key, KEYBYTES, IVBYTES);
         ECRYPT_ivsetup(&ctx, iv);
         ECRYPT_decrypt_bytes(&ctx, cyphertext, newplaintext, BYTES);
 
@@ -74,15 +75,15 @@ int main() {
 
         uint8_t good = 1;
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < KEYBYTES; i++) {
             if (plaintext[i] != newplaintext[i]) {
                 good = 0;
+                printf("Error on trial %d, byte %d: %d vs. %d\n", t, i, plaintext[i], newplaintext[i]);
                 break;
             }
         }
 
         if (!good) {
-            puts("Error!");
             break;
         }
     }
