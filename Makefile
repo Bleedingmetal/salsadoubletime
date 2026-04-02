@@ -1,17 +1,9 @@
 
-name = salsa20
-type = sync
-std = -ansi
+original: salsa20.c main.c ecrypt-config.h ecrypt-machine.h ecrypt-portable.h ecrypt-sync.h
+	gcc salsa20.c main.c ecrypt-config.h ecrypt-machine.h ecrypt-portable.h ecrypt-sync.h -o original
 
-srcdir = .
-root := $(shell \
-  cd "$(srcdir)"; root="$(srcdir)"; \
-  while [ "`pwd`" != "/" ]; do \
-    if [ -r "`pwd`/test/ecrypt-test.mk" ]; then  \
-      echo $$root; exit; \
-    fi; \
-    cd ..; root="$$root"/..; \
-  done; \
-  echo ".")
+modified: salsa20_modified.c main.c ecrypt-config.h ecrypt-machine.h ecrypt-portable.h ecrypt-sync.h
+	gcc salsa20_modified.c main.c ecrypt-config.h ecrypt-machine.h ecrypt-portable.h ecrypt-sync.h -o modified
 
-include $(root)/test/ecrypt-test.mk
+clean:
+	rm -rf original modified
