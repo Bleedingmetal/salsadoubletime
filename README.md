@@ -1,4 +1,5 @@
-
+![Language](https://img.shields.io/badge/language-C-blue.svg)
+![Topic](https://img.shields.io/badge/topic-cryptography-blue.svg)
 # About Salsa Double Time
 
 This project accelerates Salsa20 by converting its single-threaded encryption path into a 16-way parallel pipeline. We began with Daniel J. Bernstein’s public-domain `salsa20.c` implementation and then created `salsa20_modified.c` to refactor `ECRYPT_encrypt_bytes()` around POSIX threads (`pthread.h`).
