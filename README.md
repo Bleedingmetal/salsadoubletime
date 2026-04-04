@@ -109,6 +109,6 @@ The degree of performance improvement depends on:
 
 ## License
 
-This project incorporates Salsa20 reference code by D. J. Bernstein, released into the public domain. Multithreading modifications are provided under the same public domain license.
+This project incorporates Salsa20 reference code by D. J. Bernstein, released into the public domain.
 
 
