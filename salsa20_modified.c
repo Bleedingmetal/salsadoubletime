@@ -121,7 +121,7 @@ static void* encrypt_worker(void * ctx)
   for (;;) {
     salsa20_wordtobyte(output,x->input);
     x->input[8] = PLUSONE(x->input[8]);
-    if (!x->input[8]) {
+    if (!x->input[8]) { 
       x->input[9] = PLUSONE(x->input[9]);
       /* stopping at 2^70 bytes per nonce is user's responsibility */
     }
