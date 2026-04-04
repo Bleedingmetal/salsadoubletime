@@ -1,24 +1,24 @@
 
 # About Salsa Double Time
 
-We implemented a multithreaded version of Salsa20 that leverages POSIX threads to parallelize the keystream generation process. While Bernstein's original Salsa20 code is highly efficient for single-core execution, we realized that the independent nature of Salsa20 blocks allows for simultaneous computation across multiple CPU cores.
+This project accelerates Salsa20 by converting its single-threaded encryption path into a 16-way parallel pipeline. We began with Daniel J. Bernstein’s public-domain `salsa20.c` implementation and then created `salsa20_modified.c` to refactor `ECRYPT_encrypt_bytes()` around POSIX threads (`pthread.h`).
 
-Thus, we decided to approach the problem by parallelizing the `ECRYPT_encrypt_bytes()` function.
+The original Salsa20 code is already compact and efficient, but it generates the keystream sequentially for the entire buffer. That sequential execution becomes the performance bottleneck on an 8-core/16-thread processor, because only one logical thread can produce keystream at a time.
 
-Instead of generating the keystream sequentially for the entire buffer, we partition the data into segments. On an 8-core/16-thread machine, we found that using 16 threads maximized throughput by saturating the available logical processors.
+Our approach partitions each plaintext buffer into 16 segments and assigns one thread per segment. Each thread computes a separate Salsa20 keystream for its segment and XORs that keystream with the plaintext. All threads are initialized with the same IV in this implementation, which is a known limitation of the current design.
 
-### Serial Execution (Original)
+### Original Execution
 ```
-Block 1 -> Block 2 -> Block 3 -> ... -> Block N  [Sequential]
-```
-
-### Parallel Execution (Salsa Double Time)
-```
-| Thread 1:  Block 1   |  Thread 2:  Block 2   |  Thread 3:  Block 3   | ... | Thread 16: Block N   |
-| Keystream Gen & XOR  |  Keystream Gen & XOR  |  Keystream Gen & XOR  | ... |  Keystream Gen & XOR |
+Stream cipher keystream generated sequentially for the full buffer
 ```
 
-Each thread independently generates its cipher keystream segment and performs the XOR operation with its assigned portion of the plaintext, enabling true parallel encryption across available processor cores.
+### Parallel Execution (Multithreaded Salsa Double Time)
+```
+| Thread 1: Seg 1 | Thread 2: Seg 2 | ... | Thread 16: Seg 16 |
+| Keystream + XOR | Keystream + XOR | ... | Keystream + XOR |
+```
+
+Each thread runs a separate Salsa20 stream on its assigned buffer segment, increasing throughput by leveraging multiple threads.
 
 ## Usage
 
@@ -32,7 +32,7 @@ make modified   # Build Salsa Double Time (multithreaded version)
 make clean      # Remove build artifacts
 ```
 
-The build system compiles using `gcc` and links all required ECRYPT header files and source modules.
+This code depends on POSIX threads, so it is intended for Linux systems with `pthread.h` support. The build system compiles using `gcc` and links all required ECRYPT header files and source modules.
 
 ### Configuration
 
@@ -69,26 +69,23 @@ The `main.c` testbench isolates the performance of the cipher by measuring only 
 | Data | Unique randomized plaintext per iteration |
 | Total Workload | ~536 MB encrypted and decrypted |
 
-### Timing Output
 
-The program prints the total cumulative time in milliseconds spent performing all encryption and decryption operations across all iterations:
+### Observed Performance
 
-```
-Total time: 12345.678900ms
-```
+The reported results are based on our computers' performance. In two test cases on two separate machines, we observed the following example timings:
 
-This represents pure cryptographic processing time and does not include:
-- Cipher context initialization
-- Memory allocation
-- Random number generation
-- Verification loops
-- I/O operations
+| Machine | Original | Modified |
+|---------|----------|----------|
+| Test Case 1 | 21054.673828 ms | 4830.660156 ms |
+| Test Case 2 | 49295.230469 ms | 22293.113281 ms |
+
+These values illustrate that the speedup varies by machine configuration and workload, but the multithreaded implementation consistently reduces overall cryptographic processing time significantly.
 
 ### Expected Results
 
 Comparing the `original` and `modified` executables reveals the performance advantage of parallelization:
 
-- **Original**: Sequential block-by-block processing
+- **Original**: Sequential stream cipher processing
 - **Modified**: Parallel multi-threaded processing across available cores
 
 The degree of performance improvement depends on:
@@ -107,7 +104,13 @@ The degree of performance improvement depends on:
 | `ecrypt-*.h` | ECRYPT interface definitions and machine-specific configurations |
 | `Makefile` | Build automation |
 
-## License
+## Authors 
+
+- Team: Team E1 Project 1
+- Course: CS 4801 Introduction To Cryptography And Communication Security
+- Authors: Aditya Manoj Krishna, Jacob Boyle, Olivia Olsen, Alan Wang
+
+## References
 
 This project incorporates Salsa20 reference code by D. J. Bernstein, released into the public domain.
 
